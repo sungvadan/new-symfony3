@@ -9,16 +9,23 @@
     <parameter key="kernel.logs_dir">D:\sites\new-symfony3\app\logs</parameter>
     <parameter key="kernel.bundles" type="collection">
       <parameter key="FrameworkBundle">Symfony\Bundle\FrameworkBundle\FrameworkBundle</parameter>
+      <parameter key="TwigBundle">Symfony\Bundle\TwigBundle\TwigBundle</parameter>
+      <parameter key="SensioFrameworkExtraBundle">Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle</parameter>
     </parameter>
     <parameter key="kernel.charset">UTF-8</parameter>
     <parameter key="kernel.container_class">appDevDebugProjectContainer</parameter>
-    <parameter key="fragment.renderer.hinclude.global_template"></parameter>
+    <parameter key="fragment.renderer.hinclude.global_template">null</parameter>
     <parameter key="fragment.path">/_fragment</parameter>
     <parameter key="kernel.secret">micro0</parameter>
     <parameter key="kernel.http_method_override">true</parameter>
     <parameter key="kernel.trusted_hosts" type="collection"/>
     <parameter key="kernel.trusted_proxies" type="collection"/>
     <parameter key="kernel.default_locale">en</parameter>
+    <parameter key="templating.helper.code.file_link_format">null</parameter>
+    <parameter key="templating.loader.cache.path">null</parameter>
+    <parameter key="templating.engines" type="collection">
+      <parameter>twig</parameter>
+    </parameter>
     <parameter key="data_collector.templates" type="collection"/>
     <parameter key="router.options.generator_class">Symfony\Component\Routing\Generator\UrlGenerator</parameter>
     <parameter key="router.options.generator_base_class">Symfony\Component\Routing\Generator\UrlGenerator</parameter>
@@ -37,6 +44,20 @@
     <parameter key="request_listener.https_port">443</parameter>
     <parameter key="debug.error_handler.throw_at">-1</parameter>
     <parameter key="debug.container.dump">D:\sites\new-symfony3\app\cache\dev/appDevDebugProjectContainer.xml</parameter>
+    <parameter key="twig.exception_listener.controller">twig.controller.exception:showAction</parameter>
+    <parameter key="twig.form.resources" type="collection">
+      <parameter>form_div_layout.html.twig</parameter>
+    </parameter>
+    <parameter key="sensio_framework_extra.view.guesser.class">Sensio\Bundle\FrameworkExtraBundle\Templating\TemplateGuesser</parameter>
+    <parameter key="sensio_framework_extra.controller.listener.class">Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener</parameter>
+    <parameter key="sensio_framework_extra.routing.loader.annot_dir.class">Symfony\Component\Routing\Loader\AnnotationDirectoryLoader</parameter>
+    <parameter key="sensio_framework_extra.routing.loader.annot_file.class">Symfony\Component\Routing\Loader\AnnotationFileLoader</parameter>
+    <parameter key="sensio_framework_extra.routing.loader.annot_class.class">Sensio\Bundle\FrameworkExtraBundle\Routing\AnnotatedRouteControllerLoader</parameter>
+    <parameter key="sensio_framework_extra.converter.listener.class">Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener</parameter>
+    <parameter key="sensio_framework_extra.converter.manager.class">Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterManager</parameter>
+    <parameter key="sensio_framework_extra.converter.doctrine.class">Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DoctrineParamConverter</parameter>
+    <parameter key="sensio_framework_extra.converter.datetime.class">Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DateTimeParamConverter</parameter>
+    <parameter key="sensio_framework_extra.view.listener.class">Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener</parameter>
     <parameter key="console.command.ids" type="collection"/>
   </parameters>
   <services>
@@ -71,6 +92,19 @@
     <service id="request_stack" class="Symfony\Component\HttpFoundation\RequestStack"/>
     <service id="cache_warmer" class="Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerAggregate">
       <argument type="collection">
+        <argument type="service">
+          <service class="Symfony\Bundle\FrameworkBundle\CacheWarmer\TemplatePathsCacheWarmer" public="false">
+            <tag name="kernel.cache_warmer" priority="20"/>
+            <argument type="service">
+              <service class="Symfony\Bundle\FrameworkBundle\CacheWarmer\TemplateFinder" public="false">
+                <argument type="service" id="kernel"/>
+                <argument type="service" id="templating.filename_parser"/>
+                <argument>D:\sites\new-symfony3\app/Resources</argument>
+              </service>
+            </argument>
+            <argument type="service" id="templating.locator"/>
+          </service>
+        </argument>
         <argument type="service" id="kernel.class_cache.cache_warmer"/>
         <argument type="service">
           <service class="Symfony\Bundle\FrameworkBundle\CacheWarmer\TranslationsCacheWarmer" public="false">
@@ -82,6 +116,33 @@
           <service class="Symfony\Bundle\FrameworkBundle\CacheWarmer\RouterCacheWarmer" public="false">
             <tag name="kernel.cache_warmer"/>
             <argument type="service" id="router"/>
+          </service>
+        </argument>
+        <argument type="service">
+          <service class="Symfony\Bundle\TwigBundle\CacheWarmer\TemplateCacheCacheWarmer" public="false">
+            <tag name="kernel.cache_warmer"/>
+            <argument type="service" id="service_container"/>
+            <argument type="service">
+              <service class="Symfony\Bundle\FrameworkBundle\CacheWarmer\TemplateFinder" public="false">
+                <argument type="service" id="kernel"/>
+                <argument type="service" id="templating.filename_parser"/>
+                <argument>D:\sites\new-symfony3\app/Resources</argument>
+              </service>
+            </argument>
+            <argument type="collection"/>
+          </service>
+        </argument>
+        <argument type="service">
+          <service class="Symfony\Bundle\TwigBundle\CacheWarmer\TemplateCacheWarmer" public="false">
+            <tag name="kernel.cache_warmer"/>
+            <argument type="service" id="twig"/>
+            <argument type="service">
+              <service class="Symfony\Bundle\TwigBundle\TemplateIterator" public="false">
+                <argument type="service" id="kernel"/>
+                <argument>D:\sites\new-symfony3\app</argument>
+                <argument type="collection"/>
+              </service>
+            </argument>
           </service>
         </argument>
       </argument>
@@ -120,6 +181,14 @@
         <argument>fragment.renderer.inline</argument>
       </call>
       <call method="addRendererService">
+        <argument>hinclude</argument>
+        <argument>fragment.renderer.hinclude</argument>
+      </call>
+      <call method="addRendererService">
+        <argument>hinclude</argument>
+        <argument>fragment.renderer.hinclude</argument>
+      </call>
+      <call method="addRendererService">
         <argument>esi</argument>
         <argument>fragment.renderer.esi</argument>
       </call>
@@ -137,9 +206,11 @@
       </call>
     </service>
     <service id="fragment.renderer.hinclude" class="Symfony\Component\HttpKernel\Fragment\HIncludeFragmentRenderer">
-      <argument></argument>
+      <tag name="kernel.fragment_renderer" alias="hinclude"/>
+      <tag name="kernel.fragment_renderer" alias="hinclude"/>
+      <argument type="service" id="twig"/>
       <argument type="service" id="uri_signer"/>
-      <argument></argument>
+      <argument>null</argument>
       <call method="setFragmentPath">
         <argument>/_fragment</argument>
       </call>
@@ -335,6 +406,10 @@
         <argument>php</argument>
         <argument type="service" id="translation.extractor.php"/>
       </call>
+      <call method="addExtractor">
+        <argument>twig</argument>
+        <argument type="service" id="twig.translation.extractor"/>
+      </call>
     </service>
     <service id="translation.writer" class="Symfony\Component\Translation\Writer\TranslationWriter">
       <call method="addDumper">
@@ -382,6 +457,29 @@
       <argument>false</argument>
       <argument>false</argument>
     </service>
+    <service id="assets.packages" class="Symfony\Component\Asset\Packages">
+      <argument type="service">
+        <service class="Symfony\Component\Asset\PathPackage" public="false">
+          <argument></argument>
+          <argument type="service">
+            <service class="Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy" public="false"/>
+          </argument>
+          <argument type="service" id="assets.context"/>
+        </service>
+      </argument>
+      <argument type="collection"/>
+    </service>
+    <service id="assets.context" class="Symfony\Component\Asset\Context\RequestStackContext">
+      <argument type="service" id="request_stack"/>
+    </service>
+    <service id="templating.name_parser" class="Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser">
+      <argument type="service" id="kernel"/>
+    </service>
+    <service id="templating.filename_parser" class="Symfony\Bundle\FrameworkBundle\Templating\TemplateFilenameParser"/>
+    <service id="templating.locator" class="Symfony\Bundle\FrameworkBundle\Templating\Loader\TemplateLocator" public="false">
+      <argument type="service" id="file_locator"/>
+      <argument>D:\sites\new-symfony3\app\cache\dev</argument>
+    </service>
     <service id="routing.loader" class="Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader">
       <argument type="service" id="controller_name_converter"/>
       <argument type="service">
@@ -423,6 +521,42 @@
               <service class="Symfony\Component\Routing\Loader\DependencyInjection\ServiceRouterLoader" public="false">
                 <tag name="routing.loader"/>
                 <argument type="service" id="service_container"/>
+              </service>
+            </argument>
+          </call>
+          <call method="addLoader">
+            <argument type="service">
+              <service class="Symfony\Component\Routing\Loader\AnnotationDirectoryLoader" public="false">
+                <tag name="routing.loader"/>
+                <argument type="service" id="file_locator"/>
+                <argument type="service">
+                  <service class="Sensio\Bundle\FrameworkExtraBundle\Routing\AnnotatedRouteControllerLoader" public="false">
+                    <tag name="routing.loader"/>
+                    <argument type="service" id="annotation_reader"/>
+                  </service>
+                </argument>
+              </service>
+            </argument>
+          </call>
+          <call method="addLoader">
+            <argument type="service">
+              <service class="Symfony\Component\Routing\Loader\AnnotationFileLoader" public="false">
+                <tag name="routing.loader"/>
+                <argument type="service" id="file_locator"/>
+                <argument type="service">
+                  <service class="Sensio\Bundle\FrameworkExtraBundle\Routing\AnnotatedRouteControllerLoader" public="false">
+                    <tag name="routing.loader"/>
+                    <argument type="service" id="annotation_reader"/>
+                  </service>
+                </argument>
+              </service>
+            </argument>
+          </call>
+          <call method="addLoader">
+            <argument type="service">
+              <service class="Sensio\Bundle\FrameworkExtraBundle\Routing\AnnotatedRouteControllerLoader" public="false">
+                <tag name="routing.loader"/>
+                <argument type="service" id="annotation_reader"/>
               </service>
             </argument>
           </call>
@@ -489,6 +623,30 @@
         <argument>debug.debug_handlers_listener</argument>
         <argument>Symfony\Component\HttpKernel\EventListener\DebugHandlersListener</argument>
       </call>
+      <call method="addSubscriberService">
+        <argument>twig.exception_listener</argument>
+        <argument>Symfony\Component\HttpKernel\EventListener\ExceptionListener</argument>
+      </call>
+      <call method="addSubscriberService">
+        <argument>sensio_framework_extra.controller.listener</argument>
+        <argument>Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener</argument>
+      </call>
+      <call method="addSubscriberService">
+        <argument>sensio_framework_extra.converter.listener</argument>
+        <argument>Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener</argument>
+      </call>
+      <call method="addSubscriberService">
+        <argument>sensio_framework_extra.view.listener</argument>
+        <argument>Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener</argument>
+      </call>
+      <call method="addSubscriberService">
+        <argument>sensio_framework_extra.cache.listener</argument>
+        <argument>Sensio\Bundle\FrameworkExtraBundle\EventListener\HttpCacheListener</argument>
+      </call>
+      <call method="addSubscriberService">
+        <argument>sensio_framework_extra.security.listener</argument>
+        <argument>Sensio\Bundle\FrameworkExtraBundle\EventListener\SecurityListener</argument>
+      </call>
     </service>
     <service id="debug.controller_resolver" class="Symfony\Component\HttpKernel\Controller\TraceableControllerResolver">
       <argument type="service">
@@ -500,6 +658,221 @@
         </service>
       </argument>
       <argument type="service" id="debug.stopwatch"/>
+    </service>
+    <service id="twig" class="Twig_Environment">
+      <argument type="service" id="twig.loader"/>
+      <argument type="collection">
+        <argument key="exception_controller">twig.controller.exception:showAction</argument>
+        <argument key="form_themes" type="collection">
+          <argument>form_div_layout.html.twig</argument>
+        </argument>
+        <argument key="autoescape">filename</argument>
+        <argument key="cache">D:\sites\new-symfony3\app\cache\dev/twig</argument>
+        <argument key="charset">UTF-8</argument>
+        <argument key="debug">true</argument>
+        <argument key="paths" type="collection"/>
+        <argument key="date" type="collection">
+          <argument key="format">F j, Y H:i</argument>
+          <argument key="interval_format">%d days</argument>
+          <argument key="timezone">null</argument>
+        </argument>
+        <argument key="number_format" type="collection">
+          <argument key="decimals">0</argument>
+          <argument key="decimal_point">.</argument>
+          <argument key="thousands_separator">,</argument>
+        </argument>
+      </argument>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\ProfilerExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="twig.profile"/>
+            <argument type="service" id="debug.stopwatch" on-invalid="null"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\TranslationExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="translator"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\AssetExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="assets.packages"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\CodeExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument>null</argument>
+            <argument>D:\sites\new-symfony3\app</argument>
+            <argument>UTF-8</argument>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\RoutingExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="router"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\YamlExtension" public="false">
+            <tag name="twig.extension"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\StopwatchExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="debug.stopwatch" on-invalid="ignore"/>
+            <argument>true</argument>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\ExpressionExtension" public="false">
+            <tag name="twig.extension"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\HttpKernelExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="fragment.handler"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\Extension\HttpFoundationExtension" public="false">
+            <tag name="twig.extension"/>
+            <argument type="service" id="request_stack"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addExtension">
+        <argument type="service">
+          <service class="Twig_Extension_Debug" public="false">
+            <tag name="twig.extension"/>
+          </service>
+        </argument>
+      </call>
+      <call method="addGlobal">
+        <argument>app</argument>
+        <argument type="service">
+          <service class="Symfony\Bridge\Twig\AppVariable" public="false">
+            <call method="setEnvironment">
+              <argument>dev</argument>
+            </call>
+            <call method="setDebug">
+              <argument>true</argument>
+            </call>
+            <call method="setRequestStack">
+              <argument type="service" id="request_stack" on-invalid="ignore"/>
+            </call>
+          </service>
+        </argument>
+      </call>
+      <configurator method="configure">
+        <service class="Symfony\Bundle\TwigBundle\DependencyInjection\Configurator\EnvironmentConfigurator" public="false">
+          <argument>F j, Y H:i</argument>
+          <argument>%d days</argument>
+          <argument>null</argument>
+          <argument>0</argument>
+          <argument>.</argument>
+          <argument>,</argument>
+        </service>
+      </configurator>
+    </service>
+    <service id="twig.profile" class="Twig_Profiler_Profile"/>
+    <service id="twig.translation.extractor" class="Symfony\Bridge\Twig\Translation\TwigExtractor">
+      <tag name="translation.extractor" alias="twig"/>
+      <argument type="service" id="twig"/>
+    </service>
+    <service id="twig.exception_listener" class="Symfony\Component\HttpKernel\EventListener\ExceptionListener">
+      <tag name="kernel.event_subscriber"/>
+      <tag name="monolog.logger" channel="request"/>
+      <argument>twig.controller.exception:showAction</argument>
+      <argument>null</argument>
+    </service>
+    <service id="twig.controller.exception" class="Symfony\Bundle\TwigBundle\Controller\ExceptionController">
+      <argument type="service" id="twig"/>
+      <argument>true</argument>
+    </service>
+    <service id="twig.controller.preview_error" class="Symfony\Bundle\TwigBundle\Controller\PreviewErrorController">
+      <argument type="service" id="http_kernel"/>
+      <argument>twig.controller.exception:showAction</argument>
+    </service>
+    <service id="sensio_framework_extra.view.guesser" class="Sensio\Bundle\FrameworkExtraBundle\Templating\TemplateGuesser">
+      <argument type="service" id="kernel"/>
+    </service>
+    <service id="sensio_framework_extra.controller.listener" class="Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener">
+      <tag name="kernel.event_subscriber"/>
+      <argument type="service" id="annotation_reader"/>
+    </service>
+    <service id="sensio_framework_extra.converter.listener" class="Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener">
+      <tag name="kernel.event_subscriber"/>
+      <argument type="service" id="sensio_framework_extra.converter.manager"/>
+      <argument>true</argument>
+    </service>
+    <service id="sensio_framework_extra.converter.manager" class="Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterManager">
+      <call method="add">
+        <argument type="service" id="sensio_framework_extra.converter.doctrine.orm"/>
+        <argument>0</argument>
+        <argument>doctrine.orm</argument>
+      </call>
+      <call method="add">
+        <argument type="service" id="sensio_framework_extra.converter.datetime"/>
+        <argument>0</argument>
+        <argument>datetime</argument>
+      </call>
+    </service>
+    <service id="sensio_framework_extra.converter.doctrine.orm" class="Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DoctrineParamConverter">
+      <tag name="request.param_converter" converter="doctrine.orm"/>
+      <argument>null</argument>
+    </service>
+    <service id="sensio_framework_extra.converter.datetime" class="Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DateTimeParamConverter">
+      <tag name="request.param_converter" converter="datetime"/>
+    </service>
+    <service id="sensio_framework_extra.view.listener" class="Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener">
+      <tag name="kernel.event_subscriber"/>
+      <argument type="service" id="service_container"/>
+    </service>
+    <service id="sensio_framework_extra.cache.listener" class="Sensio\Bundle\FrameworkExtraBundle\EventListener\HttpCacheListener">
+      <tag name="kernel.event_subscriber"/>
+    </service>
+    <service id="sensio_framework_extra.security.listener" class="Sensio\Bundle\FrameworkExtraBundle\EventListener\SecurityListener">
+      <tag name="kernel.event_subscriber"/>
+      <argument>null</argument>
+      <argument type="service">
+        <service class="Sensio\Bundle\FrameworkExtraBundle\Security\ExpressionLanguage" public="false"/>
+      </argument>
+      <argument>null</argument>
+      <argument>null</argument>
+      <argument>null</argument>
+      <argument>null</argument>
+    </service>
+    <service id="templating.loader" class="Symfony\Bundle\FrameworkBundle\Templating\Loader\FilesystemLoader">
+      <argument type="service" id="templating.locator"/>
+    </service>
+    <service id="templating" class="Symfony\Bundle\TwigBundle\TwigEngine">
+      <argument type="service" id="twig"/>
+      <argument type="service" id="templating.name_parser"/>
+      <argument type="service" id="templating.locator"/>
     </service>
     <service id="router" class="Symfony\Bundle\FrameworkBundle\Routing\Router">
       <tag name="monolog.logger" channel="router"/>
@@ -535,6 +908,22 @@
         </service>
       </argument>
       <argument>true</argument>
+    </service>
+    <service id="twig.loader" class="Symfony\Bundle\TwigBundle\Loader\FilesystemLoader">
+      <tag name="twig.loader"/>
+      <argument type="service" id="templating.locator"/>
+      <argument type="service" id="templating.name_parser"/>
+      <call method="addPath">
+        <argument>D:\sites\new-symfony3\vendor\symfony\symfony\src\Symfony\Bundle\FrameworkBundle/Resources/views</argument>
+        <argument>Framework</argument>
+      </call>
+      <call method="addPath">
+        <argument>D:\sites\new-symfony3\vendor\symfony\symfony\src\Symfony\Bundle\TwigBundle/Resources/views</argument>
+        <argument>Twig</argument>
+      </call>
+      <call method="addPath">
+        <argument>D:\sites\new-symfony3\app/Resources/views</argument>
+      </call>
     </service>
     <service id="event_dispatcher" alias="debug.event_dispatcher"/>
   </services>

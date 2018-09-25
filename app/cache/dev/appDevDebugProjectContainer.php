@@ -32,6 +32,8 @@ class appDevDebugProjectContainer extends Container
         $this->services = array();
         $this->methodMap = array(
             'annotation_reader' => 'getAnnotationReaderService',
+            'assets.context' => 'getAssets_ContextService',
+            'assets.packages' => 'getAssets_PackagesService',
             'cache_clearer' => 'getCacheClearerService',
             'cache_warmer' => 'getCacheWarmerService',
             'config_cache_factory' => 'getConfigCacheFactoryService',
@@ -58,8 +60,22 @@ class appDevDebugProjectContainer extends Container
             'router.request_context' => 'getRouter_RequestContextService',
             'router_listener' => 'getRouterListenerService',
             'routing.loader' => 'getRouting_LoaderService',
+            'sensio_framework_extra.cache.listener' => 'getSensioFrameworkExtra_Cache_ListenerService',
+            'sensio_framework_extra.controller.listener' => 'getSensioFrameworkExtra_Controller_ListenerService',
+            'sensio_framework_extra.converter.datetime' => 'getSensioFrameworkExtra_Converter_DatetimeService',
+            'sensio_framework_extra.converter.doctrine.orm' => 'getSensioFrameworkExtra_Converter_Doctrine_OrmService',
+            'sensio_framework_extra.converter.listener' => 'getSensioFrameworkExtra_Converter_ListenerService',
+            'sensio_framework_extra.converter.manager' => 'getSensioFrameworkExtra_Converter_ManagerService',
+            'sensio_framework_extra.security.listener' => 'getSensioFrameworkExtra_Security_ListenerService',
+            'sensio_framework_extra.view.guesser' => 'getSensioFrameworkExtra_View_GuesserService',
+            'sensio_framework_extra.view.listener' => 'getSensioFrameworkExtra_View_ListenerService',
             'service_container' => 'getServiceContainerService',
             'streamed_response_listener' => 'getStreamedResponseListenerService',
+            'templating' => 'getTemplatingService',
+            'templating.filename_parser' => 'getTemplating_FilenameParserService',
+            'templating.loader' => 'getTemplating_LoaderService',
+            'templating.locator' => 'getTemplating_LocatorService',
+            'templating.name_parser' => 'getTemplating_NameParserService',
             'translation.dumper.csv' => 'getTranslation_Dumper_CsvService',
             'translation.dumper.ini' => 'getTranslation_Dumper_IniService',
             'translation.dumper.json' => 'getTranslation_Dumper_JsonService',
@@ -89,6 +105,13 @@ class appDevDebugProjectContainer extends Container
             'translator.default' => 'getTranslator_DefaultService',
             'translator.selector' => 'getTranslator_SelectorService',
             'translator_listener' => 'getTranslatorListenerService',
+            'twig' => 'getTwigService',
+            'twig.controller.exception' => 'getTwig_Controller_ExceptionService',
+            'twig.controller.preview_error' => 'getTwig_Controller_PreviewErrorService',
+            'twig.exception_listener' => 'getTwig_ExceptionListenerService',
+            'twig.loader' => 'getTwig_LoaderService',
+            'twig.profile' => 'getTwig_ProfileService',
+            'twig.translation.extractor' => 'getTwig_Translation_ExtractorService',
             'uri_signer' => 'getUriSignerService',
         );
         $this->aliases = array(
@@ -118,6 +141,32 @@ class appDevDebugProjectContainer extends Container
     }
 
     /**
+     * Gets the 'assets.context' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Component\Asset\Context\RequestStackContext A Symfony\Component\Asset\Context\RequestStackContext instance.
+     */
+    protected function getAssets_ContextService()
+    {
+        return $this->services['assets.context'] = new \Symfony\Component\Asset\Context\RequestStackContext($this->get('request_stack'));
+    }
+
+    /**
+     * Gets the 'assets.packages' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Component\Asset\Packages A Symfony\Component\Asset\Packages instance.
+     */
+    protected function getAssets_PackagesService()
+    {
+        return $this->services['assets.packages'] = new \Symfony\Component\Asset\Packages(new \Symfony\Component\Asset\PathPackage('', new \Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy(), $this->get('assets.context')), array());
+    }
+
+    /**
      * Gets the 'cache_clearer' service.
      *
      * This service is shared.
@@ -140,7 +189,12 @@ class appDevDebugProjectContainer extends Container
      */
     protected function getCacheWarmerService()
     {
-        return $this->services['cache_warmer'] = new \Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerAggregate(array(0 => $this->get('kernel.class_cache.cache_warmer'), 1 => new \Symfony\Bundle\FrameworkBundle\CacheWarmer\TranslationsCacheWarmer($this->get('translator')), 2 => new \Symfony\Bundle\FrameworkBundle\CacheWarmer\RouterCacheWarmer($this->get('router'))));
+        $a = $this->get('kernel');
+        $b = $this->get('templating.filename_parser');
+
+        $c = new \Symfony\Bundle\FrameworkBundle\CacheWarmer\TemplateFinder($a, $b, ($this->targetDirs[2].'/Resources'));
+
+        return $this->services['cache_warmer'] = new \Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerAggregate(array(0 => new \Symfony\Bundle\FrameworkBundle\CacheWarmer\TemplatePathsCacheWarmer($c, $this->get('templating.locator')), 1 => $this->get('kernel.class_cache.cache_warmer'), 2 => new \Symfony\Bundle\FrameworkBundle\CacheWarmer\TranslationsCacheWarmer($this->get('translator')), 3 => new \Symfony\Bundle\FrameworkBundle\CacheWarmer\RouterCacheWarmer($this->get('router')), 4 => new \Symfony\Bundle\TwigBundle\CacheWarmer\TemplateCacheCacheWarmer($this, $c, array()), 5 => new \Symfony\Bundle\TwigBundle\CacheWarmer\TemplateCacheWarmer($this->get('twig'), new \Symfony\Bundle\TwigBundle\TemplateIterator($a, $this->targetDirs[2], array()))));
     }
 
     /**
@@ -200,6 +254,12 @@ class appDevDebugProjectContainer extends Container
         $instance->addSubscriberService('translator_listener', 'Symfony\\Component\\HttpKernel\\EventListener\\TranslatorListener');
         $instance->addSubscriberService('router_listener', 'Symfony\\Component\\HttpKernel\\EventListener\\RouterListener');
         $instance->addSubscriberService('debug.debug_handlers_listener', 'Symfony\\Component\\HttpKernel\\EventListener\\DebugHandlersListener');
+        $instance->addSubscriberService('twig.exception_listener', 'Symfony\\Component\\HttpKernel\\EventListener\\ExceptionListener');
+        $instance->addSubscriberService('sensio_framework_extra.controller.listener', 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\ControllerListener');
+        $instance->addSubscriberService('sensio_framework_extra.converter.listener', 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\ParamConverterListener');
+        $instance->addSubscriberService('sensio_framework_extra.view.listener', 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\TemplateListener');
+        $instance->addSubscriberService('sensio_framework_extra.cache.listener', 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\HttpCacheListener');
+        $instance->addSubscriberService('sensio_framework_extra.security.listener', 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\SecurityListener');
 
         return $instance;
     }
@@ -256,6 +316,8 @@ class appDevDebugProjectContainer extends Container
         $this->services['fragment.handler'] = $instance = new \Symfony\Component\HttpKernel\DependencyInjection\LazyLoadingFragmentHandler($this, $this->get('request_stack'), true);
 
         $instance->addRendererService('inline', 'fragment.renderer.inline');
+        $instance->addRendererService('hinclude', 'fragment.renderer.hinclude');
+        $instance->addRendererService('hinclude', 'fragment.renderer.hinclude');
         $instance->addRendererService('esi', 'fragment.renderer.esi');
         $instance->addRendererService('ssi', 'fragment.renderer.ssi');
 
@@ -289,7 +351,7 @@ class appDevDebugProjectContainer extends Container
      */
     protected function getFragment_Renderer_HincludeService()
     {
-        $this->services['fragment.renderer.hinclude'] = $instance = new \Symfony\Component\HttpKernel\Fragment\HIncludeFragmentRenderer('', $this->get('uri_signer'), '');
+        $this->services['fragment.renderer.hinclude'] = $instance = new \Symfony\Component\HttpKernel\Fragment\HIncludeFragmentRenderer($this->get('twig'), $this->get('uri_signer'), NULL);
 
         $instance->setFragmentPath('/_fragment');
 
@@ -462,15 +524,143 @@ class appDevDebugProjectContainer extends Container
     protected function getRouting_LoaderService()
     {
         $a = $this->get('file_locator');
+        $b = $this->get('annotation_reader');
 
-        $b = new \Symfony\Component\Config\Loader\LoaderResolver();
-        $b->addLoader(new \Symfony\Component\Routing\Loader\XmlFileLoader($a));
-        $b->addLoader(new \Symfony\Component\Routing\Loader\YamlFileLoader($a));
-        $b->addLoader(new \Symfony\Component\Routing\Loader\PhpFileLoader($a));
-        $b->addLoader(new \Symfony\Component\Routing\Loader\DirectoryLoader($a));
-        $b->addLoader(new \Symfony\Component\Routing\Loader\DependencyInjection\ServiceRouterLoader($this));
+        $c = new \Sensio\Bundle\FrameworkExtraBundle\Routing\AnnotatedRouteControllerLoader($b);
 
-        return $this->services['routing.loader'] = new \Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader($this->get('controller_name_converter'), $b);
+        $d = new \Symfony\Component\Config\Loader\LoaderResolver();
+        $d->addLoader(new \Symfony\Component\Routing\Loader\XmlFileLoader($a));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\YamlFileLoader($a));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\PhpFileLoader($a));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\DirectoryLoader($a));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\DependencyInjection\ServiceRouterLoader($this));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\AnnotationDirectoryLoader($a, $c));
+        $d->addLoader(new \Symfony\Component\Routing\Loader\AnnotationFileLoader($a, $c));
+        $d->addLoader($c);
+
+        return $this->services['routing.loader'] = new \Symfony\Bundle\FrameworkBundle\Routing\DelegatingLoader($this->get('controller_name_converter'), $d);
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.cache.listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\EventListener\HttpCacheListener A Sensio\Bundle\FrameworkExtraBundle\EventListener\HttpCacheListener instance.
+     */
+    protected function getSensioFrameworkExtra_Cache_ListenerService()
+    {
+        return $this->services['sensio_framework_extra.cache.listener'] = new \Sensio\Bundle\FrameworkExtraBundle\EventListener\HttpCacheListener();
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.controller.listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener A Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener instance.
+     */
+    protected function getSensioFrameworkExtra_Controller_ListenerService()
+    {
+        return $this->services['sensio_framework_extra.controller.listener'] = new \Sensio\Bundle\FrameworkExtraBundle\EventListener\ControllerListener($this->get('annotation_reader'));
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.converter.datetime' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DateTimeParamConverter A Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DateTimeParamConverter instance.
+     */
+    protected function getSensioFrameworkExtra_Converter_DatetimeService()
+    {
+        return $this->services['sensio_framework_extra.converter.datetime'] = new \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DateTimeParamConverter();
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.converter.doctrine.orm' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DoctrineParamConverter A Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DoctrineParamConverter instance.
+     */
+    protected function getSensioFrameworkExtra_Converter_Doctrine_OrmService()
+    {
+        return $this->services['sensio_framework_extra.converter.doctrine.orm'] = new \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\DoctrineParamConverter(NULL);
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.converter.listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener A Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener instance.
+     */
+    protected function getSensioFrameworkExtra_Converter_ListenerService()
+    {
+        return $this->services['sensio_framework_extra.converter.listener'] = new \Sensio\Bundle\FrameworkExtraBundle\EventListener\ParamConverterListener($this->get('sensio_framework_extra.converter.manager'), true);
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.converter.manager' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterManager A Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterManager instance.
+     */
+    protected function getSensioFrameworkExtra_Converter_ManagerService()
+    {
+        $this->services['sensio_framework_extra.converter.manager'] = $instance = new \Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterManager();
+
+        $instance->add($this->get('sensio_framework_extra.converter.doctrine.orm'), 0, 'doctrine.orm');
+        $instance->add($this->get('sensio_framework_extra.converter.datetime'), 0, 'datetime');
+
+        return $instance;
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.security.listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\EventListener\SecurityListener A Sensio\Bundle\FrameworkExtraBundle\EventListener\SecurityListener instance.
+     */
+    protected function getSensioFrameworkExtra_Security_ListenerService()
+    {
+        return $this->services['sensio_framework_extra.security.listener'] = new \Sensio\Bundle\FrameworkExtraBundle\EventListener\SecurityListener(NULL, new \Sensio\Bundle\FrameworkExtraBundle\Security\ExpressionLanguage(), NULL, NULL, NULL, NULL);
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.view.guesser' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\Templating\TemplateGuesser A Sensio\Bundle\FrameworkExtraBundle\Templating\TemplateGuesser instance.
+     */
+    protected function getSensioFrameworkExtra_View_GuesserService()
+    {
+        return $this->services['sensio_framework_extra.view.guesser'] = new \Sensio\Bundle\FrameworkExtraBundle\Templating\TemplateGuesser($this->get('kernel'));
+    }
+
+    /**
+     * Gets the 'sensio_framework_extra.view.listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener A Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener instance.
+     */
+    protected function getSensioFrameworkExtra_View_ListenerService()
+    {
+        return $this->services['sensio_framework_extra.view.listener'] = new \Sensio\Bundle\FrameworkExtraBundle\EventListener\TemplateListener($this);
     }
 
     /**
@@ -497,6 +687,58 @@ class appDevDebugProjectContainer extends Container
     protected function getStreamedResponseListenerService()
     {
         return $this->services['streamed_response_listener'] = new \Symfony\Component\HttpKernel\EventListener\StreamedResponseListener();
+    }
+
+    /**
+     * Gets the 'templating' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\TwigBundle\TwigEngine A Symfony\Bundle\TwigBundle\TwigEngine instance.
+     */
+    protected function getTemplatingService()
+    {
+        return $this->services['templating'] = new \Symfony\Bundle\TwigBundle\TwigEngine($this->get('twig'), $this->get('templating.name_parser'), $this->get('templating.locator'));
+    }
+
+    /**
+     * Gets the 'templating.filename_parser' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\FrameworkBundle\Templating\TemplateFilenameParser A Symfony\Bundle\FrameworkBundle\Templating\TemplateFilenameParser instance.
+     */
+    protected function getTemplating_FilenameParserService()
+    {
+        return $this->services['templating.filename_parser'] = new \Symfony\Bundle\FrameworkBundle\Templating\TemplateFilenameParser();
+    }
+
+    /**
+     * Gets the 'templating.loader' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\FrameworkBundle\Templating\Loader\FilesystemLoader A Symfony\Bundle\FrameworkBundle\Templating\Loader\FilesystemLoader instance.
+     */
+    protected function getTemplating_LoaderService()
+    {
+        return $this->services['templating.loader'] = new \Symfony\Bundle\FrameworkBundle\Templating\Loader\FilesystemLoader($this->get('templating.locator'));
+    }
+
+    /**
+     * Gets the 'templating.name_parser' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser A Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser instance.
+     */
+    protected function getTemplating_NameParserService()
+    {
+        return $this->services['templating.name_parser'] = new \Symfony\Bundle\FrameworkBundle\Templating\TemplateNameParser($this->get('kernel'));
     }
 
     /**
@@ -642,6 +884,7 @@ class appDevDebugProjectContainer extends Container
         $this->services['translation.extractor'] = $instance = new \Symfony\Component\Translation\Extractor\ChainExtractor();
 
         $instance->addExtractor('php', $this->get('translation.extractor.php'));
+        $instance->addExtractor('twig', $this->get('twig.translation.extractor'));
 
         return $instance;
     }
@@ -902,6 +1145,129 @@ class appDevDebugProjectContainer extends Container
     }
 
     /**
+     * Gets the 'twig' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Twig_Environment A Twig_Environment instance.
+     */
+    protected function getTwigService()
+    {
+        $a = $this->get('debug.stopwatch', ContainerInterface::NULL_ON_INVALID_REFERENCE);
+        $b = $this->get('request_stack');
+
+        $c = new \Symfony\Bridge\Twig\AppVariable();
+        $c->setEnvironment('dev');
+        $c->setDebug(true);
+        if ($this->has('request_stack')) {
+            $c->setRequestStack($b);
+        }
+
+        $this->services['twig'] = $instance = new \Twig_Environment($this->get('twig.loader'), array('exception_controller' => 'twig.controller.exception:showAction', 'form_themes' => array(0 => 'form_div_layout.html.twig'), 'autoescape' => 'filename', 'cache' => (__DIR__.'/twig'), 'charset' => 'UTF-8', 'debug' => true, 'paths' => array(), 'date' => array('format' => 'F j, Y H:i', 'interval_format' => '%d days', 'timezone' => NULL), 'number_format' => array('decimals' => 0, 'decimal_point' => '.', 'thousands_separator' => ',')));
+
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\ProfilerExtension($this->get('twig.profile'), $a));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\TranslationExtension($this->get('translator')));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\AssetExtension($this->get('assets.packages')));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\CodeExtension(NULL, $this->targetDirs[2], 'UTF-8'));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\RoutingExtension($this->get('router')));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\YamlExtension());
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\StopwatchExtension($a, true));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\ExpressionExtension());
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\HttpKernelExtension($this->get('fragment.handler')));
+        $instance->addExtension(new \Symfony\Bridge\Twig\Extension\HttpFoundationExtension($b));
+        $instance->addExtension(new \Twig_Extension_Debug());
+        $instance->addGlobal('app', $c);
+        call_user_func(array(new \Symfony\Bundle\TwigBundle\DependencyInjection\Configurator\EnvironmentConfigurator('F j, Y H:i', '%d days', NULL, 0, '.', ','), 'configure'), $instance);
+
+        return $instance;
+    }
+
+    /**
+     * Gets the 'twig.controller.exception' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\TwigBundle\Controller\ExceptionController A Symfony\Bundle\TwigBundle\Controller\ExceptionController instance.
+     */
+    protected function getTwig_Controller_ExceptionService()
+    {
+        return $this->services['twig.controller.exception'] = new \Symfony\Bundle\TwigBundle\Controller\ExceptionController($this->get('twig'), true);
+    }
+
+    /**
+     * Gets the 'twig.controller.preview_error' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\TwigBundle\Controller\PreviewErrorController A Symfony\Bundle\TwigBundle\Controller\PreviewErrorController instance.
+     */
+    protected function getTwig_Controller_PreviewErrorService()
+    {
+        return $this->services['twig.controller.preview_error'] = new \Symfony\Bundle\TwigBundle\Controller\PreviewErrorController($this->get('http_kernel'), 'twig.controller.exception:showAction');
+    }
+
+    /**
+     * Gets the 'twig.exception_listener' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Component\HttpKernel\EventListener\ExceptionListener A Symfony\Component\HttpKernel\EventListener\ExceptionListener instance.
+     */
+    protected function getTwig_ExceptionListenerService()
+    {
+        return $this->services['twig.exception_listener'] = new \Symfony\Component\HttpKernel\EventListener\ExceptionListener('twig.controller.exception:showAction', NULL);
+    }
+
+    /**
+     * Gets the 'twig.loader' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bundle\TwigBundle\Loader\FilesystemLoader A Symfony\Bundle\TwigBundle\Loader\FilesystemLoader instance.
+     */
+    protected function getTwig_LoaderService()
+    {
+        $this->services['twig.loader'] = $instance = new \Symfony\Bundle\TwigBundle\Loader\FilesystemLoader($this->get('templating.locator'), $this->get('templating.name_parser'));
+
+        $instance->addPath(($this->targetDirs[3].'\\vendor\\symfony\\symfony\\src\\Symfony\\Bundle\\FrameworkBundle/Resources/views'), 'Framework');
+        $instance->addPath(($this->targetDirs[3].'\\vendor\\symfony\\symfony\\src\\Symfony\\Bundle\\TwigBundle/Resources/views'), 'Twig');
+        $instance->addPath(($this->targetDirs[2].'/Resources/views'));
+
+        return $instance;
+    }
+
+    /**
+     * Gets the 'twig.profile' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Twig_Profiler_Profile A Twig_Profiler_Profile instance.
+     */
+    protected function getTwig_ProfileService()
+    {
+        return $this->services['twig.profile'] = new \Twig_Profiler_Profile();
+    }
+
+    /**
+     * Gets the 'twig.translation.extractor' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * @return \Symfony\Bridge\Twig\Translation\TwigExtractor A Symfony\Bridge\Twig\Translation\TwigExtractor instance.
+     */
+    protected function getTwig_Translation_ExtractorService()
+    {
+        return $this->services['twig.translation.extractor'] = new \Symfony\Bridge\Twig\Translation\TwigExtractor($this->get('twig'));
+    }
+
+    /**
      * Gets the 'uri_signer' service.
      *
      * This service is shared.
@@ -946,6 +1312,23 @@ class appDevDebugProjectContainer extends Container
     protected function getRouter_RequestContextService()
     {
         return $this->services['router.request_context'] = new \Symfony\Component\Routing\RequestContext('', 'GET', 'localhost', 'http', 80, 443);
+    }
+
+    /**
+     * Gets the 'templating.locator' service.
+     *
+     * This service is shared.
+     * This method always returns the same instance of the service.
+     *
+     * This service is private.
+     * If you want to be able to request this service from the container directly,
+     * make it public, otherwise you might end up with broken code.
+     *
+     * @return \Symfony\Bundle\FrameworkBundle\Templating\Loader\TemplateLocator A Symfony\Bundle\FrameworkBundle\Templating\Loader\TemplateLocator instance.
+     */
+    protected function getTemplating_LocatorService()
+    {
+        return $this->services['templating.locator'] = new \Symfony\Bundle\FrameworkBundle\Templating\Loader\TemplateLocator($this->get('file_locator'), __DIR__);
     }
 
     /**
@@ -1025,10 +1408,12 @@ class appDevDebugProjectContainer extends Container
             'kernel.logs_dir' => ($this->targetDirs[2].'\\logs'),
             'kernel.bundles' => array(
                 'FrameworkBundle' => 'Symfony\\Bundle\\FrameworkBundle\\FrameworkBundle',
+                'TwigBundle' => 'Symfony\\Bundle\\TwigBundle\\TwigBundle',
+                'SensioFrameworkExtraBundle' => 'Sensio\\Bundle\\FrameworkExtraBundle\\SensioFrameworkExtraBundle',
             ),
             'kernel.charset' => 'UTF-8',
             'kernel.container_class' => 'appDevDebugProjectContainer',
-            'fragment.renderer.hinclude.global_template' => '',
+            'fragment.renderer.hinclude.global_template' => NULL,
             'fragment.path' => '/_fragment',
             'kernel.secret' => 'micro0',
             'kernel.http_method_override' => true,
@@ -1039,6 +1424,11 @@ class appDevDebugProjectContainer extends Container
 
             ),
             'kernel.default_locale' => 'en',
+            'templating.helper.code.file_link_format' => NULL,
+            'templating.loader.cache.path' => NULL,
+            'templating.engines' => array(
+                0 => 'twig',
+            ),
             'data_collector.templates' => array(
 
             ),
@@ -1059,6 +1449,20 @@ class appDevDebugProjectContainer extends Container
             'request_listener.https_port' => 443,
             'debug.error_handler.throw_at' => -1,
             'debug.container.dump' => (__DIR__.'/appDevDebugProjectContainer.xml'),
+            'twig.exception_listener.controller' => 'twig.controller.exception:showAction',
+            'twig.form.resources' => array(
+                0 => 'form_div_layout.html.twig',
+            ),
+            'sensio_framework_extra.view.guesser.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\Templating\\TemplateGuesser',
+            'sensio_framework_extra.controller.listener.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\ControllerListener',
+            'sensio_framework_extra.routing.loader.annot_dir.class' => 'Symfony\\Component\\Routing\\Loader\\AnnotationDirectoryLoader',
+            'sensio_framework_extra.routing.loader.annot_file.class' => 'Symfony\\Component\\Routing\\Loader\\AnnotationFileLoader',
+            'sensio_framework_extra.routing.loader.annot_class.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\Routing\\AnnotatedRouteControllerLoader',
+            'sensio_framework_extra.converter.listener.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\ParamConverterListener',
+            'sensio_framework_extra.converter.manager.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\Request\\ParamConverter\\ParamConverterManager',
+            'sensio_framework_extra.converter.doctrine.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\Request\\ParamConverter\\DoctrineParamConverter',
+            'sensio_framework_extra.converter.datetime.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\Request\\ParamConverter\\DateTimeParamConverter',
+            'sensio_framework_extra.view.listener.class' => 'Sensio\\Bundle\\FrameworkExtraBundle\\EventListener\\TemplateListener',
             'console.command.ids' => array(
 
             ),

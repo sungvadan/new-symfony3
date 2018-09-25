@@ -11,7 +11,9 @@ class LittleKernel extends Kernel
     public function registerBundles()
     {
         return [
-            new \Symfony\Bundle\FrameworkBundle\FrameworkBundle()
+            new \Symfony\Bundle\FrameworkBundle\FrameworkBundle(),
+            new \Symfony\Bundle\TwigBundle\TwigBundle(),
+            new \Sensio\Bundle\FrameworkExtraBundle\SensioFrameworkExtraBundle()
 
         ];
     }
@@ -24,12 +26,15 @@ class LittleKernel extends Kernel
     protected function configureRoutes(\Symfony\Component\Routing\RouteCollectionBuilder $routes)
     {
         $routes->add('/hello/symfony/{version}', 'kernel:helloSymfony');
+        $routes->import(__DIR__.'/../src/AppBundle/Controller','/','annotation');
     }
 
     protected function configureContainer(\Symfony\Component\DependencyInjection\ContainerBuilder $c, \Symfony\Component\Config\Loader\LoaderInterface $loader)
     {
         $c->loadFromExtension('framework',[
-           'secret' => 'micro0'
+           'secret' => 'micro0',
+            'templating'=> ['engines'=> ['twig']],
+            'assets' => []
         ]);
     }
 
