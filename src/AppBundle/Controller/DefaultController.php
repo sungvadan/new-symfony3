@@ -2,6 +2,7 @@
 
 namespace AppBundle\Controller;
 
+use AppBundle\Form\RegistrationType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,5 +38,22 @@ class DefaultController extends Controller
      */
     public function logoutAction()
     {
+    }
+
+    /**
+     * @Route("/register", name="registration")
+     */
+    public function registerAction(Request $request)
+    {
+        $form = $this->createForm(RegistrationType::class);
+        $form->handleRequest($request);
+        if($form->isValid()){
+            dump($form->getData());die;
+        }
+
+        return $this->render('default/register.html.twig', [
+            'form' => $form->createView()
+        ]);
+
     }
 }
