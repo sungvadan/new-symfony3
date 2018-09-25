@@ -2,6 +2,7 @@
 
 namespace AppBundle\Controller;
 
+use AppBundle\Entity\User;
 use AppBundle\Form\RegistrationType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -55,5 +56,17 @@ class DefaultController extends Controller
             'form' => $form->createView()
         ]);
 
+    }
+
+
+    /**
+     * @Route("/users/{username}", name="user_view")
+     */
+    public function viewUserAction(User $user)
+    {
+        if(!$this->isGranted('USER_VIEW', $user)){
+            throw $this->createAccessDeniedException('No');
+        }
+        dump($user);die;
     }
 }

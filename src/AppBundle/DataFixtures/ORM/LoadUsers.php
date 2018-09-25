@@ -15,6 +15,8 @@ class LoadUses implements FixtureInterface
     {
         $weaverryan = new User('weaverryan');
         $manager->persist($weaverryan);
+        $weaverryan = new User('vtp');
+        $manager->persist($weaverryan);
         $manager->flush();
     }
 }
